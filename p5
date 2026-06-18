@@ -1,65 +1,32 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-from collections import Counter
+from sklearn.neighbors import KNeighborsClassifier
 
-data = np.random.rand(100)
+np.random.seed(42)
+X = np.random.rand(100, 1) 
+X_train, X_test = X[:50], X[50:]
 
-labels = ["Class1" if x <= 0.5 else "Class2" for x in data[:50]]
+y_train = np.where(X_train <= 0.5, 1, 2).flatten()
 
+k_values = [1, 3, 5, 20, 30]
+train_results = pd.DataFrame({"X_train": X_train.flatten(), "Actual_Class": y_train})
+test_results = pd.DataFrame({"X_test": X_test.flatten()})
 
-def euclidean_distance(x1, x2):
-    return abs(x1 - x2)
+plt.figure(figsize=(10, 6))
+plt.scatter(X_train, [-1]*len(X_train), c=y_train, marker='s', cmap='bwr')
 
+for i, k in enumerate(k_values):
+    preds = KNeighborsClassifier(n_neighbors=k).fit(X_train, y_train).predict(X_test)
+    test_results[f"Pred_k={k}"] = preds
+    
+    plt.scatter(X_test, [i]*len(X_test), c=preds, marker='o', cmap='bwr')
 
-def knn_classifier(train_data, train_labels, test_point, k):
-    distances = [(euclidean_distance(test_point, train_data[i]), train_labels[i]) for i in range(len(train_data))]
+plt.axvline(x=0.5, color='black', linestyle='--')
+plt.yticks([-1] + list(range(len(k_values))), ["Train Data"] + [f"k={k}" for k in k_values])
+plt.title("KNN: Decision Boundaries across different K values")
+plt.grid(True)
+plt.show()
 
-    distances.sort(key=lambda x: x[0])
-    k_nearest_neighbors = distances[:k]
-
-    k_nearest_labels = [label for _, label in k_nearest_neighbors]
-
-    return Counter(k_nearest_labels).most_common(1)[0][0]
-
-
-train_data = data[:50]
-train_labels = labels
-
-test_data = data[50:]
-
-k_values = [1, 2, 3, 4, 5, 20, 30]
-
-print("--- k-Nearest Neighbors Classification ---")
-print("Training dataset: First 50 points labeled based on the rule (x <= 0.5 -> Class1, x > 0.5 -> Class2)")
-print("Testing dataset: Remaining 50 points to be classified\n")
-
-results = {}
-
-for k in k_values:
-    print(f"Results for k = {k}:")
-    classified_labels = [knn_classifier(train_data, train_labels, test_point, k) for test_point in test_data]
-    results[k] = classified_labels
-
-    for i, label in enumerate(classified_labels, start=51):
-        print(f"Point x{i} (value: {test_data[i - 51]:.4f}) is classified as {label}")
-    print("\n")
-
-print("Classification complete.\n")
-
-for k in k_values:
-    classified_labels = results[k]
-    class1_points = [test_data[i] for i in range(len(test_data)) if classified_labels[i] == "Class1"]
-    class2_points = [test_data[i] for i in range(len(test_data)) if classified_labels[i] == "Class2"]
-
-    plt.figure(figsize=(10, 6))
-    plt.scatter(train_data, [0] * len(train_data), c=["blue" if label == "Class1" else "red" for label in train_labels],
-                label="Training Data", marker="o")
-    plt.scatter(class1_points, [1] * len(class1_points), c="blue", label="Class1 (Test)", marker="x")
-    plt.scatter(class2_points, [1] * len(class2_points), c="red", label="Class2 (Test)", marker="x")
-
-    plt.title(f"k-NN Classification Results for k = {k}")
-    plt.xlabel("Data Points")
-    plt.ylabel("Classification Level")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+print("\n========== TRAINING DATA ==========\n", train_results.head())
+print("\n========== TEST DATA ==========\n", test_results.head())
