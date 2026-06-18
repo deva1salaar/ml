@@ -1,30 +1,37 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
-print(cancer.feature_names)
-print()
-print(cancer.target_names)
-print()
-print(cancer.data.shape)
+# Load dataset
+data = load_breast_cancer(as_frame=True)
+cancer_data = data.frame
 
-cancer = load_breast_cancer(as_frame=True)
-cancer_data=cancer.frame
+print("Features:", data.feature_names)
+print("Target classes:", data.target_names)
+print("Data shape:", cancer_data.shape)
 print(cancer_data)
 print(cancer_data.isnull().sum())
-x=cancer_data.iloc[:,:-1]
-y=cancer_data.iloc[:,-1]
 
-x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.2,random_state=42)
+# Split features and target
+X, Y = cancer_data.iloc[:, :-1], cancer_data.iloc[:, -1]
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
+# Train Decision Tree
+dtree = DecisionTreeClassifier(max_depth=2, random_state=42).fit(X_train, Y_train)
 
-dtree = DecisionTreeClassifier(max_depth=4, random_state=42)
-dtree = dtree.fit(x_train, y_train)
-y_pred = dtree.predict(x_test)
-from sklearn.metrics import accuracy_score
-acc = accuracy_score(y_pred, y_test)
-print("Accuracy:",acc)
-plot_tree(dtree, filled=True, feature_names=cancer.feature_names,class_names=cancer.target_names)
+# Evaluate
+y_pred = dtree.predict(X_test)
+print("Accuracy:", accuracy_score(Y_test, y_pred))
+
+# Visualize
+plot_tree(dtree, filled=True, feature_names=data.feature_names, class_names=data.target_names)
 plt.show()
+
+# Predict on new sample
+prediction = dtree.predict(X_test.iloc[[0]])
+print(prediction)
+print("Benign" if prediction == 1 else "Malignant")
