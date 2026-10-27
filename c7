@@ -1,0 +1,48 @@
+import pandas as pd
+from pgmpy.models import DiscreteBayesianNetwork
+from pgmpy.parameter_estimator import DiscreteBayesianEstimator
+from pgmpy.inference import VariableElimination
+
+# Read dataset
+df = pd.read_csv("C:/Users/gagan/Downloads/student_data.csv")
+
+# Create Bayesian Network
+model = DiscreteBayesianNetwork([
+    ("Attendance", "Result"),
+    ("Study", "Result")
+])
+
+# Fit using the current Bayesian estimator API
+estimator = DiscreteBayesianEstimator(
+    prior_type="BDeu",
+    equivalent_sample_size=5
+)
+
+model.fit(df, estimator=estimator)
+
+# Perform inference
+infer = VariableElimination(model)
+
+result = infer.query(
+    variables=["Result"],
+    evidence={
+        "Attendance": "High",
+        "Study": "High"
+    }
+)
+
+print(result)
+
+# Identify the state representing passing
+states = result.state_names["Result"]
+pass_label = "Pass"  # Change this to match your dataset's exact label
+
+if pass_label not in states:
+    raise ValueError(
+        f"Passing label {pass_label!r} not found. "
+        f"Available states: {states}"
+    )
+
+pass_probability = result.values[states.index(pass_label)] * 100
+
+print(f"Probability of passing: {pass_probability:.2f}%")
